@@ -1,33 +1,27 @@
 const express = require('express');
 const app = express();
 const bodyParser = require('body-parser');
-const { PORT } = require('./config/serverConfig');
+const { PORT, REMAINDER_BINDING_KEY } = require('./config/serverConfig');
 
 const TicketController = require('./controllers/ticket-controller');
-// const { sendBasicEmail } = require('./services/email-service');
-// const  cron = require('node-cron');
+const { subscribeMessage,createChannel } = require('./utils/messageQueue');
+const EmailService = require('./services/email-service');
 
 const jobs = require('./utils/job');
 
-const setupAndStartServer = () => {
+const setupAndStartServer = async () => {
     app.use(bodyParser.json());
     app.use(bodyParser.urlencoded({extended: true}));
 
     app.post('/api/v1/ticket',TicketController.create);
 
+    const channel = await createChannel();
+    subscribeMessage(channel,EmailService.testingQueue,REMAINDER_BINDING_KEY);
+
     app.listen(PORT,() => {
         console.log(`Server Started at PORT ${PORT}`);
-
-
         jobs();
-        // cron.schedule('*/1 * * * *',() => {
-        //     console.log('Running a task every minute');
-        // })
-
-        // sendBasicEmail('support@admin.com',
-        // 'remainderservice6@gmail.com',
-        // 'this is a testing mail',
-        // 'Hey, how are you?I hope you like the code');
+        
     });
 }
 
